@@ -4,7 +4,6 @@ import numpy as np
 import streamlit as st
 
 from numpy.linalg import svd
-from st_aggrid import AgGrid
 from numpy import eye, asarray, dot, sum, diag
 from sklearn.decomposition import PCA
 
