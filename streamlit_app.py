@@ -54,9 +54,13 @@ def pca(prefix, dim):
 
 @st.cache_resource
 def export_df(loadings, construct_names, construct_definition, cutoff):
+    decimals = 4
     df = sort_rows_and_cutoff(loadings, construct_names, construct_definition, cutoff)
     df = df.rename(columns={'index': 'Construct Name', 'Definition': 'Construct Definition'})
     df = df.set_index(['Construct Name', 'Construct Definition'])
+    for col in df.columns:
+        df[col] = df[col].apply(lambda x: round_up(x, decimals) if isinstance(x, (int, float)) else x)
+
     return df
 
 if __name__ == '__main__':
