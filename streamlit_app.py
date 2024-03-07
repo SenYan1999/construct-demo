@@ -62,12 +62,12 @@ def export_df(loadings, construct_names, construct_definition, cutoff):
 if __name__ == '__main__':
     model_option = st.selectbox(
         'Embedding LLM',
-        ('WhereIsAI/UAE-Large-V1', 'avsolatorio/GIST-large-Embedding-v0', 'llmrails/ember-v1', 'SFR-Embedding-Mistral'))
+        ('WhereIsAI/UAE-Large-V1', 'avsolatorio/GIST-large-Embedding-v0', 'llmrails/ember-v1', 'Salesforce/SFR-Embedding-Mistral'))
     pca_dim_option = st.number_input('Dimension After PCA', min_value=1, max_value=300, value=150, step=1)
     cutoff_option = st.number_input('Cut-Off Threshold', min_value=0., max_value=1., value=0.1)
 
     # prepare data
-    option_prefix = {'WhereIsAI/UAE-Large-V1': 'uae-large', 'avsolatorio/GIST-large-Embedding-v0': 'gist-large', 'llmrails/ember-v1': 'emberv1', 'SFT-Embedding-Mistral': 'SFR'}
+    option_prefix = {'WhereIsAI/UAE-Large-V1': 'uae-large', 'avsolatorio/GIST-large-Embedding-v0': 'gist-large', 'llmrails/ember-v1': 'emberv1', 'Salesforce/SFR-Embedding-Mistral': 'SFR'}
     prefix = option_prefix[model_option]
     loadings, construct_names, construct_definition = pca(prefix, pca_dim_option)
     df = export_df(loadings=loadings, construct_names=construct_names, construct_definition=construct_definition, cutoff=cutoff_option)
