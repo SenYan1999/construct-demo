@@ -41,7 +41,7 @@ def round_up(n, decimals=0):
     multiplier = 10 ** decimals
     return math.ceil(n * multiplier) / multiplier
 
-@st.cache_resource
+# @st.cache_resource
 def pca(prefix, dim):
     data = pd.read_csv(f'data/{prefix}_similarity_with_name.csv', index_col=[0,1])
     fa = PCA(n_components=dim)
@@ -52,7 +52,7 @@ def pca(prefix, dim):
     construct_names, construct_definition = [line[0] for line in data.index.tolist()], [line[1] for line in data.index.tolist()]
     return loadings, construct_names, construct_definition
 
-@st.cache_resource
+# @st.cache_resource
 def export_df(loadings, construct_names, construct_definition, cutoff):
     decimals = 4
     df = sort_rows_and_cutoff(loadings, construct_names, construct_definition, cutoff)
