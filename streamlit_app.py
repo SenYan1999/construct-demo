@@ -30,7 +30,7 @@ def sort_rows_and_cutoff(rotated_loadings, construct_names, construct_definition
     df_loadings = pd.DataFrame(rotated_loadings, index=construct_names, columns=[i+1 for i in range(rotated_loadings.shape[1])])
 
     # Sort rows in descending order based on loadings, prioritizing earlier columns
-    sorted_index = np.lexsort([-df_loadings[col] for col in reversed(df_loadings.columns)])
+    sorted_index = np.lexsort([-np.abs(df_loadings[col]) for col in reversed(df_loadings.columns)])
     df_loadings.insert (0, "Definition", construct_definitions)
     df_sorted = df_loadings.iloc[sorted_index]
 
