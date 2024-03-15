@@ -5,9 +5,29 @@ import streamlit as st
 
 from numpy.linalg import svd
 from numpy import eye, asarray, dot, sum, diag
+from sklearn import preprocessing
 from sklearn.decomposition import PCA
 from sklearn.decomposition import TruncatedSVD
 from factor_analyzer.rotator import Rotator
+
+def custom_scale(matrix):
+    # Separate positive and negative values
+    pos_vals = matrix[matrix > 0]
+    neg_vals = matrix[matrix < 0]
+    
+    # Scale positive values from 0 to 1
+    if pos_vals.size > 0:  # Check if there are any positive values
+        pos_min = pos_vals.min()
+        pos_max = pos_vals.max()
+        matrix[matrix > 0] = (pos_vals - pos_min) / (pos_max - pos_min)
+    
+    # Scale negative values from -1 to 0
+    if neg_vals.size > 0:  # Check if there are any negative values
+        neg_min = neg_vals.min()
+        neg_max = neg_vals.max()
+        matrix[matrix < 0] = -1 + (neg_vals - neg_min) / (neg_max - neg_min)
+    
+    return matrix
 
 def varimax(Phi, gamma = 1.0, q = 20, tol = 1e-6):
     p,k = Phi.shape
@@ -44,7 +64,7 @@ def round_up(n, decimals=0):
     return math.ceil(n * multiplier) / multiplier
 
 # @st.cache_resource
-def dim_reduction_rotation(data_type, algo, rotation_method, prefix, dim):
+def dim_reduction_rotation(data_type, algo, rotation_method, prefix, dim, eigen):
     # load the data
     if data_type == 'Correlation Matrix':
         data = pd.read_csv(f'data/{prefix}_correlation_with_name.csv', index_col=[0,1])
@@ -54,23 +74,28 @@ def dim_reduction_rotation(data_type, algo, rotation_method, prefix, dim):
         raise Exception(f'No Data Type: {data_type}')
 
     if algo == 'PCA':
-        pca = PCA(n_components=dim)
-        # loadings = pca.fit_transform(data)
-        loadings = pca.fit(data).components_.T
+        decomposition_algo = PCA(n_components=dim)
     elif algo == 'TruncatedSVD':
-        svd = TruncatedSVD(n_components=dim, algorithm='arpack')
-        # loadings = svd.fit_transform(data)
-        loadings = svd.fit(data).components_.T
+        decomposition_algo = TruncatedSVD(n_components=dim, algorithm='arpack')
     else:
         raise Exception(f'No Dimension Reduction Algorithm: {algo}')
 
-    if rotation_method == 'varimax':
-        loadings = varimax(loadings)
-    elif rotation_method == 'promax':
-        rotator = Rotator(method='promax')
-        loadings = rotator.fit_transform(loadings)
+    if eigen == 'Eigenvector':
+        loadings = decomposition_algo.fit(data).components_.T
+    elif eigen == 'Reduced Vector (Scaled data to [0, 1] based on the abs(loadings); Negative values are also meaningful)':
+        loadings = decomposition_algo.fit_transform(data)
     else:
-        raise Exception(f'No Rotation Method: {rotation_method}')
+        raise Exception(f'Wrong')
+
+    rotator = Rotator(method=rotation_method)
+    loadings = rotator.fit_transform(loadings)
+
+    if eigen == 'Reduced Vector (Scaled data to [0, 1] based on the abs(loadings); Negative values are also meaningful)':
+        scaler = preprocessing.StandardScaler()
+        loadings = scaler.fit_transform(loadings)
+        scaler = preprocessing.MinMaxScaler()
+        loadings = scaler.fit_transform(np.abs(loadings))
+        # loadings = custom_scale(loadings)
 
     construct_names, construct_definition = [line[0] for line in data.index.tolist()], [line[1] for line in data.index.tolist()]
     return loadings, construct_names, construct_definition
@@ -93,6 +118,7 @@ if __name__ == '__main__':
         ('WhereIsAI/UAE-Large-V1', 'avsolatorio/GIST-large-Embedding-v0', 'llmrails/ember-v1', 'Salesforce/SFR-Embedding-Mistral'))
     data_type = st.selectbox('Original Dataset', ('Correlation Matrix', 'Similarity Matrix'))
     dim_reduction_option = st.selectbox('Deimension Reduction Algorithm', ('PCA', 'TruncatedSVD'))
+    eigen = st.selectbox('Eigenvector OR Reduced Vector', ('Eigenvector', 'Reduced Vector (Scaled data to [0, 1] based on the abs(loadings); Negative values are also meaningful)'))
     rotation_method = st.selectbox('Rotation Method', ('varimax', 'promax'))
     pca_dim_option = st.number_input('Dimension After Reduction', min_value=1, max_value=300, value=150, step=1)
     cutoff_option = st.number_input('Cut-Off Threshold', min_value=0., max_value=1., value=0.1)
@@ -100,7 +126,7 @@ if __name__ == '__main__':
     # prepare data
     option_prefix = {'WhereIsAI/UAE-Large-V1': 'uae-large-v1', 'avsolatorio/GIST-large-Embedding-v0': 'gist-large-0', 'llmrails/ember-v1': 'ember-v1', 'Salesforce/SFR-Embedding-Mistral': 'SFR-Embedding'}
     prefix = option_prefix[model_option]
-    loadings, construct_names, construct_definition = dim_reduction_rotation(data_type, dim_reduction_option, rotation_method, prefix, pca_dim_option)
+    loadings, construct_names, construct_definition = dim_reduction_rotation(data_type, dim_reduction_option, rotation_method, prefix, pca_dim_option, eigen)
     df = export_df(loadings=loadings, construct_names=construct_names, construct_definition=construct_definition, cutoff=cutoff_option)
 
     # display the dataframe
